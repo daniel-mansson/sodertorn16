@@ -51,7 +51,7 @@ public struct Vec3
 		new Vec3(0,0,-1),
 		new Vec3(-1,0,0)
 	};
-	public static Vec3 VecFromDir(int dir)
+	public static Vec3 FromDir(int dir)
 	{
 		return dirLookup[dir];
 	}
@@ -60,6 +60,16 @@ public struct Vec3
 	{
 		return new Vec3(a.x + b.x, a.y + b.y, a.z + b.z);
 	}
+
+	public static bool operator ==(Vec3 a, Vec3 b)
+	{
+		return a.x == b.x && a.y == b.y && a.z == b.z;
+	}
+
+	public static bool operator !=(Vec3 a, Vec3 b)
+	{
+		return !(a.x == b.x && a.y == b.y && a.z == b.z);
+	}
 }
 
 public enum ActorActionType
@@ -67,7 +77,8 @@ public enum ActorActionType
 	Move,
 	Attack,
 	Grab,
-	Drop
+	Drop,
+	Rotate
 }
 
 public enum ActorType
@@ -79,11 +90,11 @@ public enum ActorType
 [Serializable]
 public class ActorAction
 {
-	public int target;
-	public int startFrame;
-	public int endFrame;
-	public int actionFrame;
+	public Vec3 target;
+	public int startDelay;
+	public int endDelay;
 	public ActorActionType type;
+	public bool hasBeenPerformed;
 }
 
 [Serializable]
@@ -102,23 +113,58 @@ public class Actor
 	public ActorType type;
 	public int subType;
 
-	bool flip;
-
-	public bool Step()
+	public bool Step(Dictionary<int, Actor> lookup, Terrain terrain)
 	{
-		if (order != null)
+		bool anyChange = false;
+
+		if (order != null && order.actions != null)
 		{
-			//TODO
+			var first = order.actions.First();
+
+			if (first.startDelay > 0)
+			{
+				first.startDelay--;
+			}
+			else
+			{
+				if (!first.hasBeenPerformed)
+				{
+					if (first.type == ActorActionType.Move)
+					{
+						bool clear = !lookup.ContainsKey(terrain.GetIdx(first.target));
+						if (clear)
+							pos = first.target;
+						else
+							order.actions.Clear();//Interrupt! Pow!
+
+					}
+					else if (first.type == ActorActionType.Rotate)
+					{
+						dir = (dir + first.target.x) % 4;
+					}
+
+					first.hasBeenPerformed = true;
+					anyChange = true;
+				}
+
+				if (first.endDelay > 0)
+				{
+					first.endDelay--;
+				}
+				else
+				{
+					if(order.actions.Count > 0)
+						order.actions.RemoveAt(0);
+				}
+			}
+
+			if (order.actions.Count == 0)
+			{
+				order = null;
+			}
 		}
 
-		if (flip)
-			pos = pos + Vec3.VecFromDir(dir);
-		else
-			dir = (dir + 1) % 4;
-
-		flip = !flip;
-
-		return true;
+		return anyChange;
 	}
 }
 
@@ -198,6 +244,11 @@ public class Terrain
 		return y * size + x;
 	}
 
+	public int GetIdx(Vec3 pos)
+	{
+		return GetIdx(pos.x, pos.z);
+	}
+
 	public int GetX(int idx)
 	{
 		return idx % size;
@@ -251,14 +302,16 @@ public class GameStartState
 
 public class Logic
 {
-	public List<Actor> m_rats = new List<Actor>();
-	public Dictionary<int, Actor> m_lookup;
-	public Terrain m_terrain;
+	List<Actor> m_rats = new List<Actor>();
+	Dictionary<int, Actor> m_lookup;
+	Terrain m_terrain;
+	DeterministicRandom m_random;
 
-	public Logic(Dictionary<int, Actor> lookup, Terrain terrain)
+	public Logic(Dictionary<int, Actor> lookup, Terrain terrain, int seed)
 	{
 		m_lookup = lookup;
 		m_terrain = terrain;
+		m_random = new DeterministicRandom((uint)seed);
 	}
 
 	public void Add(Actor actor)
@@ -279,7 +332,52 @@ public class Logic
 
 	public void Update()
 	{
+		foreach (var rat in m_rats)
+		{
+			if (rat.order == null || rat.order.actions == null)
+			{
+				if (m_random.Range(0, 100) > 20)
+				{
+					Vec3 npos = rat.pos + Vec3.FromDir(rat.dir);
+					int nh = m_terrain.GetHeight(npos);
+					int dh = nh - rat.pos.y;
+					npos.y = nh;
 
+					if (dh <= 1 && nh > 0 && m_random.Range(0, 100) > 30)
+					{
+						rat.order = new Order()
+						{
+							actions = new List<ActorAction>()
+							{
+								new ActorAction()
+								{
+									target = npos,
+									startDelay = 0,
+									endDelay = 0,
+									type = ActorActionType.Move
+								}
+							}
+						};
+					}
+					else
+					{
+						rat.order = new Order()
+						{
+							actions = new List<ActorAction>()
+							{
+								new ActorAction()
+								{
+									target = new Vec3(m_random.Range(0, 2) == 0 ? 1 : 3, 0, 0),
+									startDelay = 0,
+									endDelay = 0,
+									type = ActorActionType.Rotate
+								}
+							}
+						};
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -293,6 +391,9 @@ public class SurvivalGame
 	public int frame;
 	public int nextId;
 
+	Dictionary<int, Actor> m_lookup = new Dictionary<int, Actor>();
+	Logic m_logic;
+
 	public SurvivalGame(SurvivalGameConfig config)
 	{
 		this.config = config;
@@ -301,7 +402,41 @@ public class SurvivalGame
 		frame = 0;
 		random = new DeterministicRandom((uint)config.seed);
 
+		m_logic = new Logic(m_lookup, terrain, config.seed);
+
 		GenerateWorld();
+	}
+
+	Vec3 GetFreeSpot()
+	{
+		Vec3 pos = new Vec3();
+		for (int j = 0; j < 100; ++j)
+		{
+			pos = new Vec3(random.Range(0, terrain.size), 0, random.Range(0, terrain.size));
+
+			if (m_lookup.ContainsKey(terrain.GetIdx(pos)))
+				continue;
+
+			pos.y = terrain.GetHeight(pos);
+
+			if (pos.y > 0)
+				break;
+		}
+		return pos;
+	}
+
+	void SpawnActor(Actor actor)
+	{
+		actors.Add(actor);
+		m_logic.Add(actor);
+		m_lookup.Add(terrain.GetIdx(actor.pos), actor);
+	}
+
+	void KillActor(Actor actor)
+	{
+		actors.Remove(actor);
+		m_logic.Remove(actor);
+		m_lookup.Remove(terrain.GetIdx(actor.pos));
 	}
 
 	void GenerateWorld()
@@ -310,17 +445,11 @@ public class SurvivalGame
 
 		for (int i = 0; i < 8; ++i)
 		{
-			Vec3 pos = new Vec3();
+			Vec3 pos = GetFreeSpot();
 
-			for (int j = 0; j < 100; ++j)
-			{
-				pos = new Vec3(random.Range(0, terrain.size), 0, random.Range(0, terrain.size));
-				pos.y = terrain.GetHeight(pos);
-				if (pos.y > 0)
-					break;
-			}
 
-			actors.Add(new Actor()
+
+			var a = new Actor()
 			{
 				id = nextId++,
 				dir = random.Range(0, 4),
@@ -328,7 +457,9 @@ public class SurvivalGame
 				order = null,
 				type = ActorType.Rat,
 				pos = pos
-			});
+			};
+
+			SpawnActor(a);
 		}
 	}
 
@@ -360,12 +491,21 @@ public class SurvivalGame
 			terrainChange = new List<TerrainChange>()
 		};
 
+		m_logic.Update();
+
 		foreach (var actor in actors)
 		{
-			bool anyChange = actor.Step();
+			Vec3 prevPos = actor.pos;
+			bool anyChange = actor.Step(m_lookup, terrain);
 
 			if (anyChange)
 			{
+				if (prevPos != actor.pos)
+				{
+					m_lookup.Remove(terrain.GetIdx(prevPos));
+					m_lookup.Add(terrain.GetIdx(actor.pos), actor);
+				}
+
 				change.actors.Add(actor);
 			}
 		}

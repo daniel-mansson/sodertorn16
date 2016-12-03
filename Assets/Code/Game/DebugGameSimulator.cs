@@ -17,7 +17,7 @@ public class DebugGameSimulator : MonoBehaviour
 
 	void Update ()
 	{
-		if (m_game != null)
+		if (m_game != null && m_game.terrain.size != 0)
 		{
 			timer += Time.deltaTime;
 			if (timer > 0.5f)

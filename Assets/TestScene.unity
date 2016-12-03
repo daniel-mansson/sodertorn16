@@ -682,7 +682,7 @@ MonoBehaviour:
       mapSize: 0
     frame: 0
     nextId: 0
-  mapSize: 128
+  mapSize: 64
 --- !u!4 &1465956832
 Transform:
   m_ObjectHideFlags: 0
