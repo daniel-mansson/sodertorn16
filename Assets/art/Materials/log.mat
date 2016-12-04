@@ -6,7 +6,7 @@ Material:
   m_ObjectHideFlags: 0
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
-  m_Name: grass
+  m_Name: log
   m_Shader: {fileID: 46, guid: 0000000000000000f000000000000000, type: 0}
   m_ShaderKeywords: _EMISSION
   m_LightmapFlags: 1
@@ -121,7 +121,7 @@ Material:
     m_Colors:
     - first:
         name: _Color
-      second: {r: 0.27205884, g: 0.2640571, b: 0.2640571, a: 1}
+      second: {r: 0.33823532, g: 0.18335372, b: 0.017409168, a: 1}
     - first:
         name: _EmissionColor
-      second: {r: 0.062283736, g: 0.2352941, b: 0.070635974, a: 1}
+      second: {r: 0.04411763, g: 0.04411763, b: 0.04411763, a: 1}
