@@ -7,6 +7,7 @@ public class DebugGameSimulator : MonoBehaviour
 
 	public SurvivalGame m_game;
 	public int mapSize;
+	public int m_myPlayerId;
 
 	void Start ()
 	{
@@ -46,10 +47,10 @@ public class DebugGameSimulator : MonoBehaviour
 
 
 		r.y += r.height;
-		if (GUI.Button(r, "Step"))
+		if (GUI.Button(r, "Join"))
 		{
-			var change = m_game.Step();
-			m_gameView.UpdateState(change);
+			m_myPlayerId = m_game.JoinGame("Daniel");
+			m_gameView.SetLocalPlayerId(m_myPlayerId);
 		}
 	}
 }
