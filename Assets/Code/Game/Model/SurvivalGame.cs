@@ -112,6 +112,7 @@ public class Actor
 	public Order order;
 	public ActorType type;
 	public int subType;
+	public string name = "";
 
 	public bool Step(Dictionary<int, Actor> lookup, Terrain terrain)
 	{
@@ -119,42 +120,45 @@ public class Actor
 
 		if (order != null && order.actions != null)
 		{
-			var first = order.actions.First();
+			var first = order.actions.FirstOrDefault();
 
-			if (first.startDelay > 0)
+			if (first != null)
 			{
-				first.startDelay--;
-			}
-			else
-			{
-				if (!first.hasBeenPerformed)
+				if (first.startDelay > 0)
 				{
-					if (first.type == ActorActionType.Move)
-					{
-						bool clear = !lookup.ContainsKey(terrain.GetIdx(first.target));
-						if (clear)
-							pos = first.target;
-						else
-							order.actions.Clear();//Interrupt! Pow!
-
-					}
-					else if (first.type == ActorActionType.Rotate)
-					{
-						dir = (dir + first.target.x) % 4;
-					}
-
-					first.hasBeenPerformed = true;
-					anyChange = true;
-				}
-
-				if (first.endDelay > 0)
-				{
-					first.endDelay--;
+					first.startDelay--;
 				}
 				else
 				{
-					if(order.actions.Count > 0)
-						order.actions.RemoveAt(0);
+					if (!first.hasBeenPerformed)
+					{
+						if (first.type == ActorActionType.Move)
+						{
+							bool clear = !lookup.ContainsKey(terrain.GetIdx(first.target));
+							if (clear)
+								pos = first.target;
+							else
+								order.actions.Clear();//Interrupt! Pow!
+
+						}
+						else if (first.type == ActorActionType.Rotate)
+						{
+							dir = (dir + first.target.x) % 4;
+						}
+
+						first.hasBeenPerformed = true;
+						anyChange = true;
+					}
+
+					if (first.endDelay > 0)
+					{
+						first.endDelay--;
+					}
+					else
+					{
+						if (order.actions.Count > 0)
+							order.actions.RemoveAt(0);
+					}
 				}
 			}
 
@@ -393,6 +397,7 @@ public class SurvivalGame
 
 	Dictionary<int, Actor> m_lookup = new Dictionary<int, Actor>();
 	Logic m_logic;
+	List<Actor> m_newPlayers = new List<Actor>();
 
 	public SurvivalGame(SurvivalGameConfig config)
 	{
@@ -405,6 +410,26 @@ public class SurvivalGame
 		m_logic = new Logic(m_lookup, terrain, config.seed);
 
 		GenerateWorld();
+	}
+
+	public int JoinGame(string name)
+	{
+		Vec3 pos = GetFreeSpot();
+
+		var a = new Actor()
+		{
+			id = nextId++,
+			dir = random.Range(0, 4),
+			subType = random.Range(0, 100000),
+			order = null,
+			type = ActorType.Player,
+			pos = pos,
+			name = name
+		};
+
+		SpawnActor(a);
+		m_newPlayers.Add(a);
+		return a.id;
 	}
 
 	Vec3 GetFreeSpot()
@@ -446,8 +471,6 @@ public class SurvivalGame
 		for (int i = 0; i < 8; ++i)
 		{
 			Vec3 pos = GetFreeSpot();
-
-
 
 			var a = new Actor()
 			{
@@ -509,6 +532,12 @@ public class SurvivalGame
 				change.actors.Add(actor);
 			}
 		}
+
+		foreach (var a in m_newPlayers)
+		{
+			change.actors.Add(a);
+		}
+		m_newPlayers.Clear();
 
 		return change;
 	}
