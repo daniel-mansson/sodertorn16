@@ -278,10 +278,10 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1000010888789062}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -1.913, y: 0, z: 0}
+  m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0.01, y: 0.01, z: 0.01}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
   m_Children:
   - {fileID: 4000011331441948}
   - {fileID: 4000010059576310}
@@ -890,13 +890,13 @@ MonoBehaviour:
     m_Curve:
     - time: 0
       value: -0.0028611422
-      inSlope: 4.435886
-      outSlope: 4.435886
+      inSlope: 1.7380058
+      outSlope: 1.7380058
       tangentMode: 0
     - time: 0.9972184
       value: -0.0057224035
-      inSlope: -3.639705
-      outSlope: -3.639705
+      inSlope: -1.910926
+      outSlope: -1.910926
       tangentMode: 0
     m_PreInfinity: 2
     m_PostInfinity: 2

@@ -87,7 +87,7 @@ GameObject:
   - 92: {fileID: 92000010783035798}
   - 124: {fileID: 124000013889906152}
   - 81: {fileID: 81000011888539604}
-  - 114: {fileID: 114000013451879326}
+  - 114: {fileID: 114000013642221564}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -148,10 +148,10 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1000013648009966}
-  m_LocalRotation: {x: 0.609661, y: 0, z: 0, w: 0.79266226}
-  m_LocalPosition: {x: 0, y: 6, z: -1.5}
+  m_LocalRotation: {x: 0.5735764, y: 0, z: 0, w: 0.8191521}
+  m_LocalPosition: {x: 0, y: 4, z: -2}
   m_LocalScale: {x: 1, y: 1, z: 1}
-  m_LocalEulerAnglesHint: {x: 75.13, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 70, y: 0, z: 0}
   m_Children: []
   m_Father: {fileID: 4000013142179932}
   m_RootOrder: 0
@@ -306,7 +306,7 @@ MonoBehaviour:
   m_cubePrefab: {fileID: 114000013534459358, guid: 5e7e2cf52ec621b49845e48b31b7e998,
     type: 2}
   m_center: {fileID: 4000013142179932}
-  m_viewRange: 20
+  m_viewRange: 15
   m_debugCreateAll: 0
 --- !u!114 &114000010575542048
 MonoBehaviour:
@@ -349,26 +349,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c1de247dcac644e4e98c0ed773b2b8b5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &114000013451879326
+--- !u!114 &114000013642221564
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1000013648009966}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b0923359e9e352a4b9b11c7b7161ad67, type: 3}
+  m_Script: {fileID: 11500000, guid: 75febd242c999f04d9654522a10c006b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Radius: 0.371
-  m_SampleCount: 1
-  m_OcclusionIntensity: 1.99
-  m_Blur: 2
-  m_Downsampling: 2
-  m_OcclusionAttenuation: 1
-  m_MinZ: 0.01
-  m_SSAOShader: {fileID: 4800000, guid: 43ca18288c424f645aaa1e9e07f04c50, type: 3}
-  m_RandomTexture: {fileID: 2800000, guid: a181ca8e3c62f3e4b8f183f6c586b032, type: 3}
+  intensity: 0.5
+  radius: 0.2
+  blurIterations: 1
+  blurFilterDistance: 1.25
+  downsample: 1
+  rand: {fileID: 2800000, guid: a181ca8e3c62f3e4b8f183f6c586b032, type: 3}
+  aoShader: {fileID: 4800000, guid: 95616c020c5604dda96cf76afbbc0272, type: 3}
 --- !u!124 &124000013889906152
 Behaviour:
   m_ObjectHideFlags: 1
