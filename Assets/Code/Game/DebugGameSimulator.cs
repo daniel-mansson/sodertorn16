@@ -11,14 +11,14 @@ public class DebugGameSimulator : MonoBehaviour
 
 	void Start ()
 	{
-	
+		m_gameView.OnRequestMove += OnReqMove;
 	}
 
 	float timer = 0;
 
 	void Update ()
 	{
-		if (m_game != null && m_game.terrain.size != 0)
+		if (m_game != null && m_game.m_terrain.size != 0)
 		{
 			timer += Time.deltaTime;
 			if (timer > 0.5f)
@@ -51,6 +51,14 @@ public class DebugGameSimulator : MonoBehaviour
 		{
 			m_myPlayerId = m_game.JoinGame("Daniel");
 			m_gameView.SetLocalPlayerId(m_myPlayerId);
+		}
+	}
+
+	void OnReqMove(int playerId, int idx)
+	{
+		if (m_game != null)
+		{
+			m_game.RequestMoveOrder(playerId, idx);
 		}
 	}
 }

@@ -8,17 +8,33 @@ public class SurvivalGameView : MonoBehaviour
 	public List<ActorView> m_actorViewPrefabs;
 	public TerrainView m_terrainView;
 	public CameraRig m_cameraRig;
+	public PlayerController m_playerController;
 	int m_localPlayerId = -1;
 	ActorView m_localPlayerView;
 
 	Dictionary<ActorType, ActorView> m_actorViewsPrefabDict = new Dictionary<ActorType, ActorView>();
 	Dictionary<int, ActorView> m_actors = new Dictionary<int, ActorView>();
 
+	public event System.Action<int, int> OnRequestMove;
+
 	void Awake()
 	{
+		m_playerController.Init(OnClickTerrain);
+
 		foreach (var a in m_actorViewPrefabs)
 		{
 			m_actorViewsPrefabDict.Add(a.m_type, a);
+		}
+	}
+
+	public void OnClickTerrain(int idx)
+	{
+		if (m_localPlayerId != -1)
+		{
+			if (OnRequestMove != null)
+			{
+				OnRequestMove(m_localPlayerId, idx);
+			}
 		}
 	}
 

@@ -55,6 +55,17 @@ public struct Vec3
 	{
 		return dirLookup[dir];
 	}
+	public static int ToDir(int x, int z)
+	{
+		if (z > 0)
+			return 0;
+		if (x > 0)
+			return 1;
+		if (z < 0)
+			return 2;
+		else
+			return 3;
+	}
 
 	public static Vec3 operator +(Vec3 a, Vec3 b)
 	{
@@ -143,7 +154,7 @@ public class Actor
 						}
 						else if (first.type == ActorActionType.Rotate)
 						{
-							dir = (dir + first.target.x) % 4;
+							dir = first.target.x;
 						}
 
 						first.hasBeenPerformed = true;
@@ -263,6 +274,11 @@ public class Terrain
 		return idx / size;
 	}
 
+	public int GetHeight(int idx)
+	{
+		return map[idx];
+	}
+
 	public int GetHeight(int x, int y)
 	{
 		return map[GetIdx(x, y)];
@@ -371,7 +387,7 @@ public class Logic
 							{
 								new ActorAction()
 								{
-									target = new Vec3(m_random.Range(0, 2) == 0 ? 1 : 3, 0, 0),
+									target = new Vec3(m_random.Range(0, 4), 0, 0),
 									startDelay = 0,
 									endDelay = 0,
 									type = ActorActionType.Rotate
@@ -388,9 +404,9 @@ public class Logic
 [Serializable]
 public class SurvivalGame
 {
-	public DeterministicRandom random;
-	public List<Actor> actors;
-	public Terrain terrain;
+	public DeterministicRandom m_random;
+	public List<Actor> m_actors;
+	public Terrain m_terrain;
 	public SurvivalGameConfig config;
 	public int frame;
 	public int nextId;
@@ -402,12 +418,12 @@ public class SurvivalGame
 	public SurvivalGame(SurvivalGameConfig config)
 	{
 		this.config = config;
-		terrain = new Terrain(config);
-		actors = new List<Actor>();
+		m_terrain = new Terrain(config);
+		m_actors = new List<Actor>();
 		frame = 0;
-		random = new DeterministicRandom((uint)config.seed);
+		m_random = new DeterministicRandom((uint)config.seed);
 
-		m_logic = new Logic(m_lookup, terrain, config.seed);
+		m_logic = new Logic(m_lookup, m_terrain, config.seed);
 
 		GenerateWorld();
 	}
@@ -419,8 +435,8 @@ public class SurvivalGame
 		var a = new Actor()
 		{
 			id = nextId++,
-			dir = random.Range(0, 4),
-			subType = random.Range(0, 100000),
+			dir = m_random.Range(0, 4),
+			subType = m_random.Range(0, 100000),
 			order = null,
 			type = ActorType.Player,
 			pos = pos,
@@ -437,12 +453,12 @@ public class SurvivalGame
 		Vec3 pos = new Vec3();
 		for (int j = 0; j < 100; ++j)
 		{
-			pos = new Vec3(random.Range(0, terrain.size), 0, random.Range(0, terrain.size));
+			pos = new Vec3(m_random.Range(0, m_terrain.size), 0, m_random.Range(0, m_terrain.size));
 
-			if (m_lookup.ContainsKey(terrain.GetIdx(pos)))
+			if (m_lookup.ContainsKey(m_terrain.GetIdx(pos)))
 				continue;
 
-			pos.y = terrain.GetHeight(pos);
+			pos.y = m_terrain.GetHeight(pos);
 
 			if (pos.y > 0)
 				break;
@@ -452,21 +468,21 @@ public class SurvivalGame
 
 	void SpawnActor(Actor actor)
 	{
-		actors.Add(actor);
+		m_actors.Add(actor);
 		m_logic.Add(actor);
-		m_lookup.Add(terrain.GetIdx(actor.pos), actor);
+		m_lookup.Add(m_terrain.GetIdx(actor.pos), actor);
 	}
 
 	void KillActor(Actor actor)
 	{
-		actors.Remove(actor);
+		m_actors.Remove(actor);
 		m_logic.Remove(actor);
-		m_lookup.Remove(terrain.GetIdx(actor.pos));
+		m_lookup.Remove(m_terrain.GetIdx(actor.pos));
 	}
 
 	void GenerateWorld()
 	{
-		terrain.Generate(config.seed);
+		m_terrain.Generate(config.seed);
 
 		for (int i = 0; i < 8; ++i)
 		{
@@ -475,8 +491,8 @@ public class SurvivalGame
 			var a = new Actor()
 			{
 				id = nextId++,
-				dir = random.Range(0, 4),
-				subType = random.Range(0, 2),
+				dir = m_random.Range(0, 4),
+				subType = m_random.Range(0, 2),
 				order = null,
 				type = ActorType.Rat,
 				pos = pos
@@ -493,10 +509,10 @@ public class SurvivalGame
 			config = config,
 			change = new StateChange()
 			{
-				actors = actors,
+				actors = m_actors,
 				frame = frame,
 				killedActors = new List<Actor>(),
-				terrainChange = terrain.changeSinceStart
+				terrainChange = m_terrain.changeSinceStart
 			}
 		};
 
@@ -516,17 +532,17 @@ public class SurvivalGame
 
 		m_logic.Update();
 
-		foreach (var actor in actors)
+		foreach (var actor in m_actors)
 		{
 			Vec3 prevPos = actor.pos;
-			bool anyChange = actor.Step(m_lookup, terrain);
+			bool anyChange = actor.Step(m_lookup, m_terrain);
 
 			if (anyChange)
 			{
 				if (prevPos != actor.pos)
 				{
-					m_lookup.Remove(terrain.GetIdx(prevPos));
-					m_lookup.Add(terrain.GetIdx(actor.pos), actor);
+					m_lookup.Remove(m_terrain.GetIdx(prevPos));
+					m_lookup.Add(m_terrain.GetIdx(actor.pos), actor);
 				}
 
 				change.actors.Add(actor);
@@ -541,4 +557,117 @@ public class SurvivalGame
 
 		return change;
 	}
+
+	public void RequestMoveOrder(int playerId, int idx)
+	{
+		var actor = m_actors.FirstOrDefault(a => a.id == playerId);
+		if (actor != null)
+		{
+			actor.order = null;
+			BuildMoveOrder(actor, idx);
+		}
+	}
+
+	public void BuildMoveOrder(Actor actor, int targetIdx)
+	{
+		int cidx = m_terrain.GetIdx(actor.pos);
+		int cx = m_terrain.GetX(cidx);
+		int cy = m_terrain.GetY(cidx);
+
+		int tx = m_terrain.GetX(targetIdx);
+		int ty = m_terrain.GetY(targetIdx);
+
+		List<int> path = new List<int>();
+		path.Add(cidx);
+
+		while (cx != tx || cy != ty)
+		{
+			int dx = tx - cx;
+			int dy = ty - cy;
+
+			int adx = Math.Abs(dx);
+			int ady = Math.Abs(dy);
+
+			if (adx > ady)
+			{
+				cx += Math.Sign(dx);
+			}
+			else if (ady > adx)
+			{
+				cy += Math.Sign(dy);
+			}
+			else
+			{
+				if (m_random.Range(0, 2) == 0)
+				{
+					cx += Math.Sign(dx);
+				}
+				else
+				{
+					cy += Math.Sign(dy);
+				}
+			}
+
+			int ph = m_terrain.GetHeight(cidx);
+			cidx = m_terrain.GetIdx(cx, cy);
+			int ch = m_terrain.GetHeight(cidx);
+			int dh = ch - ph;
+			if (dh <= 1 && ch >= 0)
+			{
+				path.Add(cidx);
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		if (path.Count > 1)
+		{
+			List<ActorAction> actions = new List<ActorAction>();
+
+			//Yay, we are gonna move yo
+			int pidx = m_terrain.GetIdx(actor.pos);
+			int px = m_terrain.GetX(cidx);
+			int py = m_terrain.GetY(cidx);
+			int pdir = actor.dir;
+
+			for (int i = 1; i < path.Count; i++)
+			{
+				int prevIdx = path[i - 1];
+				int prevX = m_terrain.GetX(path[i - 1]);
+				int prevY = m_terrain.GetY(path[i - 1]);
+
+				int idx = path[i];
+				int newX = m_terrain.GetX(idx);
+				int newY = m_terrain.GetY(idx);
+
+				int newDir = Vec3.ToDir(newX - prevX, newY - prevY);
+				if (newDir != pdir)
+				{
+					pdir = newDir;
+					actions.Add(new ActorAction()
+					{
+						startDelay = 0,
+						endDelay = 0,
+						target = new Vec3(newDir,0,0),
+						type = ActorActionType.Rotate
+					});
+				}
+
+				actions.Add(new ActorAction()
+				{
+					startDelay = 0,
+					endDelay = 0,
+					target = new Vec3(newX, m_terrain.GetHeight(newX, newY), newY),
+					type = ActorActionType.Move
+				});
+			}
+
+			actor.order = new Order()
+			{
+				actions = actions
+			};
+		}
+	} 
 }
